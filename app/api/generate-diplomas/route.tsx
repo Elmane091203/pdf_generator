@@ -58,27 +58,23 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   bepFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
     marginTop: 40,
     marginHorizontal: 20,
     fontSize: 12,
-  },
-  bepFooterText: {
-    fontSize: 12,
-  },
-  bepFooterBold: {
-    fontSize: 12,
-    fontWeight: "bold",
+    textAlign: "left",
   },
   // BP styles
+  bpPage: {
+    padding: 40,
+    fontFamily: "Helvetica",
+    backgroundColor: "#ffffff",
+  },
   bpContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     border: "2pt solid #000000",
-    margin: 40,
-    padding: 30,
+    padding: 40,
   },
   bpTitle: {
     fontSize: 22,
@@ -108,21 +104,9 @@ const styles = StyleSheet.create({
     marginVertical: 20,
   },
   bpFooter: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 40,
     marginTop: 60,
     fontSize: 12,
-  },
-  bpFooterItem: {
-    flexDirection: "row",
-  },
-  bpFooterBold: {
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  bpFooterText: {
-    fontSize: 12,
+    textAlign: "center",
   },
 })
 
@@ -141,13 +125,13 @@ function BEPDocument({ nom_etudiant, specialite, date_obtention }: Student) {
           <View style={{ marginTop: 18, marginBottom: 18 }}>
             <Text style={styles.bepText}> </Text>
           </View>
-          <View style={styles.bepFooter}>
-            <Text style={styles.bepFooterText}>
-              <Text style={styles.bepFooterBold}>Date de délivrance : </Text>
-              {date_obtention}
-            </Text>
-            <Text style={styles.bepFooterBold}>Signature :</Text>
-          </View>
+          <Text style={styles.bepFooter}>
+            {"                    "}
+            <Text style={{ fontWeight: "bold" }}>Date de délivrance : </Text>
+            {date_obtention}
+            {"                                        "}
+            <Text style={{ fontWeight: "bold" }}>Signature : </Text>
+          </Text>
         </View>
       </Page>
     </Document>
@@ -158,7 +142,7 @@ function BEPDocument({ nom_etudiant, specialite, date_obtention }: Student) {
 function BPDocument({ nom_etudiant, specialite, date_obtention }: Student) {
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" style={styles.bpPage}>
         <View style={styles.bpContainer}>
           <Text style={styles.bpTitle}>Brevet Professionnel</Text>
           <Text style={styles.bpText}>Ce diplôme est décerné à</Text>
@@ -166,16 +150,13 @@ function BPDocument({ nom_etudiant, specialite, date_obtention }: Student) {
           <Text style={styles.bpText}>pour avoir satisfait aux exigences du programme</Text>
           <Text style={styles.bpSpecialite}>{specialite}</Text>
           <Text style={styles.bpText}>et avoir démontré les compétences requises pour l'obtention de ce diplôme.</Text>
-          <View style={styles.bpFooter}>
-            <View style={styles.bpFooterItem}>
-              <Text style={styles.bpFooterBold}>Date de délivrance : </Text>
-              <Text style={styles.bpFooterText}>{date_obtention}</Text>
-            </View>
-            <View style={styles.bpFooterItem}>
-              <Text style={styles.bpFooterBold}>Signature : </Text>
-              <Text style={styles.bpFooterText}>__________</Text>
-            </View>
-          </View>
+          <Text style={styles.bpFooter}>
+            <Text style={{ fontWeight: "bold" }}>Date de délivrance : </Text>
+            {date_obtention}
+            {"        "}
+            <Text style={{ fontWeight: "bold" }}>Signature : </Text>
+            __________
+          </Text>
         </View>
       </Page>
     </Document>
@@ -197,13 +178,13 @@ function BTDocument({ nom_etudiant, specialite, date_obtention }: Student) {
           <View style={{ marginTop: 18, marginBottom: 18 }}>
             <Text style={styles.bepText}> </Text>
           </View>
-          <View style={styles.bepFooter}>
-            <Text style={styles.bepFooterText}>
-              <Text style={styles.bepFooterBold}>Date de délivrance : </Text>
-              {date_obtention}
-            </Text>
-            <Text style={styles.bepFooterBold}>Signature :</Text>
-          </View>
+          <Text style={styles.bepFooter}>
+            {"                    "}
+            <Text style={{ fontWeight: "bold" }}>Date de délivrance : </Text>
+            {date_obtention}
+            {"                                        "}
+            <Text style={{ fontWeight: "bold" }}>Signature : </Text>
+          </Text>
         </View>
       </Page>
     </Document>
