@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
                 background: white;
               }
               @page {
-                size: A4;
+                size: A4 portrait;
                 margin: 20mm;
               }
             </style>
@@ -81,6 +81,7 @@ export async function POST(request: NextRequest) {
       await page.setContent(fullHtml, { waitUntil: "networkidle0" })
       const pdfBuffer = await page.pdf({
         format: "A4",
+        landscape: false,
         printBackground: true,
         margin: {
           top: "20mm",
