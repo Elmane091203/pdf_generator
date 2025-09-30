@@ -1,5 +1,6 @@
 import { TemplatePreview } from "@/components/template-preview"
 import { GeneratePDFForm } from "@/components/generate-pdf-form"
+import { TemplateEditor } from "@/components/template-editor"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
@@ -13,8 +14,9 @@ export default function Home() {
         </div>
 
         <Tabs defaultValue="preview" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="preview">Aperçu du Template</TabsTrigger>
+            <TabsTrigger value="editor">Éditeur de Template</TabsTrigger>
             <TabsTrigger value="generate">Générer des PDFs</TabsTrigger>
           </TabsList>
 
@@ -26,6 +28,18 @@ export default function Home() {
               </CardHeader>
               <CardContent>
                 <TemplatePreview />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="editor" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Éditeur de Template</CardTitle>
+                <CardDescription>Personnalisez le HTML et les styles de vos templates de diplômes</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <TemplateEditor />
               </CardContent>
             </Card>
           </TabsContent>

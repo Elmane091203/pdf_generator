@@ -12,6 +12,7 @@ interface RequestBody {
   lot_nom: string
   etudiants: Student[]
   template_type?: "bep" | "bp" | "bt"
+  download_mode?: "zip" | "individual"
 }
 
 // Define styles for PDF
@@ -194,10 +195,37 @@ function BTDocument({ nom_etudiant, specialite, date_obtention }: Student) {
 export async function POST(request: NextRequest) {
   try {
     const body: RequestBody = await request.json()
-    const { lot_nom, etudiants, template_type = "bep" } = body
+    const { lot_nom, etudiants, template_type = "bep", download_mode = "zip" } = body
 
     if (!lot_nom || !etudiants || !Array.isArray(etudiants)) {
       return NextResponse.json({ error: "Format de données invalide" }, { status: 400 })
+    }
+
+    if (download_mode === "individual") {
+      const pdfs = []
+
+      for (let i = 0; i < etudiants.length; i++) {
+        const etudiant = etudiants[i]
+
+        let document
+        if (template_type === "bp") {
+          document = <BPDocument {...etudiant} />
+        } else if (template_type === "bt") {
+          document = <BTDocument {...etudiant} />
+        } else {
+          document = <BEPDocument {...etudiant} />
+        }
+
+        const pdfBuffer = await pdf(document).toBuffer()
+        const fileName = `${etudiant.nom_etudiant.replace(/\s+/g, "_")}_diplome.pdf`
+
+        pdfs.push({
+          filename: fileName,
+          data: pdfBuffer.toString("base64"),
+        })
+      }
+
+      return NextResponse.json({ pdfs })
     }
 
     const zip = new JSZip()
