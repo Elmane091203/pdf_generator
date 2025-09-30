@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, Download, CheckCircle2, AlertCircle } from "lucide-react"
 
@@ -23,6 +24,7 @@ export function GeneratePDFForm() {
     }
   ]
 }`)
+  const [templateType, setTemplateType] = useState<"bep" | "bp" | "bt">("bep")
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<{
     success: boolean
@@ -36,6 +38,7 @@ export function GeneratePDFForm() {
 
     try {
       const data = JSON.parse(jsonData)
+      data.template_type = templateType
 
       const response = await fetch("/api/generate-diplomas", {
         method: "POST",
@@ -71,6 +74,20 @@ export function GeneratePDFForm() {
 
   return (
     <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="template-select">Type de diplôme</Label>
+        <Select value={templateType} onValueChange={(value: "bep" | "bp" | "bt") => setTemplateType(value)}>
+          <SelectTrigger id="template-select">
+            <SelectValue placeholder="Sélectionner un template" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="bep">BEP - Brevet d'Etudes Professionnel</SelectItem>
+            <SelectItem value="bp">BP - Brevet Professionnel</SelectItem>
+            <SelectItem value="bt">BT - Brevet de Technicien</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="json-data">Données JSON</Label>
         <Textarea

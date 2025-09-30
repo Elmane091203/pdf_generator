@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DiplomaTemplate } from "@/components/diploma-template"
 
 export function TemplatePreview() {
@@ -12,9 +13,25 @@ export function TemplatePreview() {
     date_obtention: "2024-06-15",
   })
 
+  const [templateType, setTemplateType] = useState<"bep" | "bp" | "bt">("bep")
+
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
+        <div className="space-y-2">
+          <Label htmlFor="template">Type de diplôme</Label>
+          <Select value={templateType} onValueChange={(value: "bep" | "bp" | "bt") => setTemplateType(value)}>
+            <SelectTrigger id="template">
+              <SelectValue placeholder="Sélectionner un template" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="bep">BEP - Brevet d'Etudes Professionnel</SelectItem>
+              <SelectItem value="bp">BP - Brevet Professionnel</SelectItem>
+              <SelectItem value="bt">BT - Brevet de Technicien</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         <div className="space-y-2">
           <Label htmlFor="nom">Nom de l'étudiant</Label>
           <Input
@@ -49,6 +66,7 @@ export function TemplatePreview() {
           nom_etudiant={studentData.nom_etudiant}
           specialite={studentData.specialite}
           date_obtention={studentData.date_obtention}
+          templateType={templateType}
         />
       </div>
     </div>

@@ -13,12 +13,13 @@ interface Student {
 interface RequestBody {
   lot_nom: string
   etudiants: Student[]
+  template_type?: "bep" | "bp" | "bt"
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body: RequestBody = await request.json()
-    const { lot_nom, etudiants } = body
+    const { lot_nom, etudiants, template_type = "bep" } = body
 
     if (!lot_nom || !etudiants || !Array.isArray(etudiants)) {
       return NextResponse.json({ error: "Format de données invalide" }, { status: 400 })
@@ -37,12 +38,12 @@ export async function POST(request: NextRequest) {
     for (let i = 0; i < etudiants.length; i++) {
       const etudiant = etudiants[i]
 
-      // Render React component to HTML
       const html = renderToStaticMarkup(
         <DiplomaTemplate
           nom_etudiant={etudiant.nom_etudiant}
           specialite={etudiant.specialite}
           date_obtention={etudiant.date_obtention}
+          templateType={template_type}
         />,
       )
 
