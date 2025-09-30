@@ -130,7 +130,7 @@ function BPDocument({ nom_etudiant, specialite, date_obtention }: Student) {
               </Text>
             </View>
             <View>
-              <Text style={styles.footerBold}>Signature : __________</Text>
+              <Text style={styles.footerBold}>Signature : </Text>
             </View>
           </View>
         </View>
@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
     const zipBuffer = await zip.generateAsync({ type: "nodebuffer" })
 
     // Return ZIP file
-    return new NextResponse(zipBuffer, {
+    return new NextResponse(new Uint8Array(zipBuffer), {
       headers: {
         "Content-Type": "application/zip",
         "Content-Disposition": `attachment; filename="${lot_nom}_diplomes.zip"`,

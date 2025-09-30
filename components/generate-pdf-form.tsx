@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, Download, CheckCircle2, AlertCircle } from "lucide-react"
+import { Loader2, CheckCircle2, AlertCircle } from "lucide-react"
 
 export function GeneratePDFForm() {
   const [jsonData, setJsonData] = useState(`{
@@ -29,7 +29,6 @@ export function GeneratePDFForm() {
   const [result, setResult] = useState<{
     success: boolean
     message: string
-    downloadUrl?: string
   } | null>(null)
 
   const handleGenerate = async () => {
@@ -48,24 +47,34 @@ export function GeneratePDFForm() {
         body: JSON.stringify(data),
       })
 
-      const resultData = await response.json()
-
       if (response.ok) {
+        // Télécharger le fichier ZIP
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${data.lot_nom}_diplomes.zip`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        window.URL.revokeObjectURL(url)
+
         setResult({
           success: true,
-          message: resultData.message,
-          downloadUrl: resultData.downloadUrl,
+          message: `Fichier ZIP généré avec succès ! ${data.etudiants.length} diplôme(s) créé(s).`,
         })
       } else {
+        // Parser l'erreur comme JSON
+        const errorData = await response.json()
         setResult({
           success: false,
-          message: resultData.error || "Une erreur est survenue",
+          message: errorData.error || "Une erreur est survenue",
         })
       }
     } catch (error) {
       setResult({
         success: false,
-        message: error instanceof Error ? error.message : "Erreur de parsing JSON",
+        message: error instanceof Error ? error.message : "Erreur lors de la génération",
       })
     } finally {
       setLoading(false)
@@ -115,16 +124,6 @@ export function GeneratePDFForm() {
           {result.success ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
           <AlertDescription className="ml-2">
             {result.message}
-            {result.downloadUrl && (
-              <div className="mt-2">
-                <Button asChild size="sm" variant="outline">
-                  <a href={result.downloadUrl} download>
-                    <Download className="mr-2 h-4 w-4" />
-                    Télécharger le ZIP
-                  </a>
-                </Button>
-              </div>
-            )}
           </AlertDescription>
         </Alert>
       )}
