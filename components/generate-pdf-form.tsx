@@ -76,6 +76,8 @@ export function GeneratePDFForm() {
             await new Promise((resolve) => setTimeout(resolve, 300 * i))
 
             const { filename, data: base64Data } = pdfData.pdfs[i]
+            
+            // Convert base64 to blob
             const byteCharacters = atob(base64Data)
             const byteNumbers = new Array(byteCharacters.length)
             for (let j = 0; j < byteCharacters.length; j++) {

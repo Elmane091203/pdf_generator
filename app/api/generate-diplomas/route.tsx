@@ -216,12 +216,17 @@ export async function POST(request: NextRequest) {
           document = <BEPDocument {...etudiant} />
         }
 
-        const pdfBuffer = await pdf(document).toBuffer()
+        const pdfDoc = pdf(document)
+        const pdfBuffer = await pdfDoc.toBlob()
         const fileName = `${etudiant.nom_etudiant.replace(/\s+/g, "_")}_diplome.pdf`
 
+        // Convert Blob to base64
+        const arrayBuffer = await pdfBuffer.arrayBuffer()
+        const base64Data = Buffer.from(arrayBuffer).toString('base64')
+        
         pdfs.push({
           filename: fileName,
-          data: pdfBuffer.toString("base64"),
+          data: base64Data,
         })
       }
 
@@ -246,7 +251,9 @@ export async function POST(request: NextRequest) {
       }
 
       // Generate PDF buffer
-      const pdfBuffer = await pdf(document).toBuffer()
+      const pdfDoc = pdf(document)
+      const pdfBlob = await pdfDoc.toBlob()
+      const pdfBuffer = await pdfBlob.arrayBuffer()
 
       // Add to ZIP
       const fileName = `${etudiant.nom_etudiant.replace(/\s+/g, "_")}_diplome.pdf`
