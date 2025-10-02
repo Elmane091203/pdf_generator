@@ -1,18 +1,25 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { Document, Page, Text, View, StyleSheet, pdf } from "@react-pdf/renderer"
-import JSZip from "jszip"
+import { type NextRequest, NextResponse } from "next/server";
+import {
+  Document,
+  Page,
+  Text,
+  View,
+  StyleSheet,
+  pdf,
+} from "@react-pdf/renderer";
+import JSZip from "jszip";
 
 interface Student {
-  nom_etudiant: string
-  specialite: string
-  date_obtention: string
+  nom_etudiant: string;
+  specialite: string;
+  date_obtention: string;
 }
 
 interface RequestBody {
-  lot_nom: string
-  etudiants: Student[]
-  template_type?: "bep" | "bp" | "bt"
-  download_mode?: "zip" | "individual"
+  lot_nom: string;
+  etudiants: Student[];
+  template_type?: "bep" | "bp" | "bt";
+  download_mode?: "zip" | "individual";
 }
 
 // Define styles for PDF
@@ -109,7 +116,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: "center",
   },
-})
+});
 
 // BEP Template Component
 function BEPDocument({ nom_etudiant, specialite, date_obtention }: Student) {
@@ -120,9 +127,14 @@ function BEPDocument({ nom_etudiant, specialite, date_obtention }: Student) {
           <Text style={styles.bepTitle}>Brevet d'Etudes Professionnel</Text>
           <Text style={styles.bepText}>Ce diplôme est décerné à Mr</Text>
           <Text style={styles.bepStudentName}>{nom_etudiant}</Text>
-          <Text style={styles.bepText}>pour avoir satisfait aux exigences du programme</Text>
+          <Text style={styles.bepText}>
+            pour avoir satisfait aux exigences du programme
+          </Text>
           <Text style={styles.bepSpecialite}>{specialite}</Text>
-          <Text style={styles.bepText}>et avoir démontré les compétences requises pour l'obtention de ce diplôme.</Text>
+          <Text style={styles.bepText}>
+            et avoir démontré les compétences requises pour l'obtention de ce
+            diplôme.
+          </Text>
           <View style={{ marginTop: 18, marginBottom: 18 }}>
             <Text style={styles.bepText}> </Text>
           </View>
@@ -136,7 +148,7 @@ function BEPDocument({ nom_etudiant, specialite, date_obtention }: Student) {
         </View>
       </Page>
     </Document>
-  )
+  );
 }
 
 // BP Template Component
@@ -148,9 +160,14 @@ function BPDocument({ nom_etudiant, specialite, date_obtention }: Student) {
           <Text style={styles.bpTitle}>Brevet Professionnel</Text>
           <Text style={styles.bpText}>Ce diplôme est décerné à</Text>
           <Text style={styles.bpStudentName}>{nom_etudiant}</Text>
-          <Text style={styles.bpText}>pour avoir satisfait aux exigences du programme</Text>
+          <Text style={styles.bpText}>
+            pour avoir satisfait aux exigences du programme
+          </Text>
           <Text style={styles.bpSpecialite}>{specialite}</Text>
-          <Text style={styles.bpText}>et avoir démontré les compétences requises pour l'obtention de ce diplôme.</Text>
+          <Text style={styles.bpText}>
+            et avoir démontré les compétences requises pour l'obtention de ce
+            diplôme.
+          </Text>
           <Text style={styles.bpFooter}>
             <Text style={{ fontWeight: "bold" }}>Date de délivrance : </Text>
             {date_obtention}
@@ -161,7 +178,7 @@ function BPDocument({ nom_etudiant, specialite, date_obtention }: Student) {
         </View>
       </Page>
     </Document>
-  )
+  );
 }
 
 // BT Template Component
@@ -173,9 +190,14 @@ function BTDocument({ nom_etudiant, specialite, date_obtention }: Student) {
           <Text style={styles.bepTitle}>Brevet de Technicien</Text>
           <Text style={styles.bepText}>Ce diplôme est décerné à Mr</Text>
           <Text style={styles.bepStudentName}>{nom_etudiant}</Text>
-          <Text style={styles.bepText}>pour avoir satisfait aux exigences du programme</Text>
+          <Text style={styles.bepText}>
+            pour avoir satisfait aux exigences du programme
+          </Text>
           <Text style={styles.bepSpecialite}>{specialite}</Text>
-          <Text style={styles.bepText}>et avoir démontré les compétences requises pour l'obtention de ce diplôme.</Text>
+          <Text style={styles.bepText}>
+            et avoir démontré les compétences requises pour l'obtention de ce
+            diplôme.
+          </Text>
           <View style={{ marginTop: 18, marginBottom: 18 }}>
             <Text style={styles.bepText}> </Text>
           </View>
@@ -189,79 +211,93 @@ function BTDocument({ nom_etudiant, specialite, date_obtention }: Student) {
         </View>
       </Page>
     </Document>
-  )
+  );
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const body: RequestBody = await request.json()
-    const { lot_nom, etudiants, template_type = "bep", download_mode = "zip" } = body
+    const body: RequestBody = await request.json();
+    const {
+      lot_nom,
+      etudiants,
+      template_type = "bep",
+      download_mode = "zip",
+    } = body;
 
     if (!lot_nom || !etudiants || !Array.isArray(etudiants)) {
-      return NextResponse.json({ error: "Format de données invalide" }, { status: 400 })
+      return NextResponse.json(
+        { error: "Format de données invalide" },
+        { status: 400 }
+      );
     }
 
     if (download_mode === "individual") {
-      const pdfs = []
+      const pdfs = [];
 
       for (let i = 0; i < etudiants.length; i++) {
-        const etudiant = etudiants[i]
+        const etudiant = etudiants[i];
 
-        let document
+        let document;
         if (template_type === "bp") {
-          document = <BPDocument {...etudiant} />
+          document = <BPDocument {...etudiant} />;
         } else if (template_type === "bt") {
-          document = <BTDocument {...etudiant} />
+          document = <BTDocument {...etudiant} />;
         } else {
-          document = <BEPDocument {...etudiant} />
+          document = <BEPDocument {...etudiant} />;
         }
 
-        const pdfDoc = pdf(document)
-        const pdfBuffer = await pdfDoc.toBlob()
-        const fileName = `${etudiant.nom_etudiant.replace(/\s+/g, "_")}_diplome.pdf`
+        const pdfDoc = pdf(document);
+        const pdfBuffer = await pdfDoc.toBlob();
+        const fileName = `${etudiant.nom_etudiant.replace(
+          /\s+/g,
+          "_"
+        )}_diplome.pdf`;
 
         // Convert Blob to base64
-        const arrayBuffer = await pdfBuffer.arrayBuffer()
-        const base64Data = Buffer.from(arrayBuffer).toString('base64')
-        
+        const arrayBuffer = await pdfBuffer.arrayBuffer();
+        const base64Data = Buffer.from(arrayBuffer).toString("base64");
+
         pdfs.push({
           filename: fileName,
           data: base64Data,
-        })
+        });
       }
 
-      return NextResponse.json({ pdfs })
+      return NextResponse.json({ pdfs });
     }
 
-    const zip = new JSZip()
-    const pdfFolder = zip.folder(lot_nom)
+    const zip = new JSZip();
+    const pdfFolder = zip.folder(lot_nom);
 
     // Generate PDF for each student
     for (let i = 0; i < etudiants.length; i++) {
-      const etudiant = etudiants[i]
+      const etudiant = etudiants[i];
 
       // Select template based on type
-      let document
+      let document;
       if (template_type === "bp") {
-        document = <BPDocument {...etudiant} />
+        document = <BPDocument {...etudiant} />;
       } else if (template_type === "bt") {
-        document = <BTDocument {...etudiant} />
+        document = <BTDocument {...etudiant} />;
       } else {
-        document = <BEPDocument {...etudiant} />
+        document = <BEPDocument {...etudiant} />;
       }
 
       // Generate PDF buffer
-      const pdfDoc = pdf(document)
-      const pdfBlob = await pdfDoc.toBlob()
-      const pdfBuffer = await pdfBlob.arrayBuffer()
+      const pdfDoc = pdf(document);
+      const pdfBlob = await pdfDoc.toBlob();
+      const pdfBuffer = await pdfBlob.arrayBuffer();
 
       // Add to ZIP
-      const fileName = `${etudiant.nom_etudiant.replace(/\s+/g, "_")}_diplome.pdf`
-      pdfFolder?.file(fileName, pdfBuffer)
+      const fileName = `${etudiant.nom_etudiant.replace(
+        /\s+/g,
+        "_"
+      )}_diplome.pdf`;
+      pdfFolder?.file(fileName, pdfBuffer);
     }
 
     // Generate ZIP file
-    const zipBuffer = await zip.generateAsync({ type: "nodebuffer" })
+    const zipBuffer = await zip.generateAsync({ type: "nodebuffer" });
 
     // Return ZIP file
     return new NextResponse(new Uint8Array(zipBuffer), {
@@ -269,15 +305,15 @@ export async function POST(request: NextRequest) {
         "Content-Type": "application/zip",
         "Content-Disposition": `attachment; filename="${lot_nom}_diplomes.zip"`,
       },
-    })
+    });
   } catch (error) {
-    console.error("[v0] Error generating diplomas:", error)
+    console.error("[v0] Error generating diplomas:", error);
     return NextResponse.json(
       {
         error: "Erreur lors de la génération des diplômes",
         details: error instanceof Error ? error.message : String(error),
       },
-      { status: 500 },
-    )
+      { status: 500 }
+    );
   }
 }
