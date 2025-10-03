@@ -58,6 +58,8 @@ export class DocuSealClient {
       ],
     }
 
+    console.log(`[DocuSeal] Creating template: ${templateName}`)
+
     const response = await fetch(`${this.baseUrl}/api/templates`, {
       method: "POST",
       headers: this.getHeaders(),
@@ -65,12 +67,21 @@ export class DocuSealClient {
     })
 
     if (!response.ok) {
-      throw new Error(`Erreur création template: ${await response.text()}`)
+      const errorText = await response.text()
+      console.error("[DocuSeal] Template creation failed:", errorText)
+      throw new Error(`Erreur création template: ${errorText}`)
     }
 
     const template = await response.json()
+    console.log(`[DocuSeal] Template created: ID=${template.id}, Slug=${template.slug}`)
 
-    await this.waitForTemplateProcessing(template.id, 1)
+    // Attendre que DocuSeal traite le document
+    const refreshedTemplate = await this.waitForTemplateAnalysis(template.id, 1, 30000)
+    if (refreshedTemplate) {
+      console.log(`[DocuSeal] Template refreshed, documents: ${refreshedTemplate.schema?.length || 0}`)
+      template.schema = refreshedTemplate.schema
+      template.documents = refreshedTemplate.documents
+    }
 
     // Ajouter le champ de signature
     await this.addSignatureField(template.id, signatureField)
@@ -121,19 +132,22 @@ export class DocuSealClient {
     const template = await response.json()
     console.log(`[DocuSeal] Template created: ID=${template.id}, Slug=${template.slug}`)
 
-    await this.waitForTemplateProcessing(template.id, pdfBuffers.length)
+    // Attendre que DocuSeal traite les documents
+    const refreshedTemplate = await this.waitForTemplateAnalysis(template.id, pdfBuffers.length, 30000)
+    if (refreshedTemplate) {
+      console.log(`[DocuSeal] Template refreshed, documents: ${refreshedTemplate.schema?.length || 0}`)
+      template.schema = refreshedTemplate.schema
+      template.documents = refreshedTemplate.documents
+    }
 
-    // Récupérer le template avec les attachment_uuids
-    const processedTemplate = await this.getTemplate(template.id)
-    console.log(`[DocuSeal] Template processed: Documents=${processedTemplate.schema?.length || 0}`)
-
-    const attachmentUuids = await this.deriveAttachmentUuids(template.id, processedTemplate)
+    // Récupérer les attachment_uuids
+    const attachmentUuids = await this.deriveAttachmentUuids(template.id, template)
     console.log(`[DocuSeal] Derived attachment UUIDs: ${attachmentUuids.length}`)
 
     // Ajouter le champ de signature avec multi-areas (une zone par document)
     await this.addMultiAreaSignatureField(template.id, signatureField, attachmentUuids)
 
-    return processedTemplate
+    return template
   }
 
   async createMultiDocumentTemplateWithSubmission(
@@ -180,75 +194,60 @@ export class DocuSealClient {
     }
   }
 
-  private async waitForTemplateProcessing(templateId: number, expectedDocumentsCount: number, timeout = 30000) {
-    const startTime = Date.now()
-    let interval = 500
+  private async waitForTemplateAnalysis(templateId: number, expectedDocumentsCount = 1, timeoutMs = 30000): Promise<DocuSealTemplate | null> {
+    const start = Date.now()
+    let interval = 500 // ms
     const maxInterval = 5000
 
-    console.log(`[DocuSeal] Waiting for template ${templateId} to process ${expectedDocumentsCount} document(s)...`)
+    console.log(`[DocuSeal] Waiting for template ${templateId} analysis...`)
 
-    while (Date.now() - startTime < timeout) {
+    while (Date.now() - start < timeoutMs) {
       try {
-        const template = await this.getTemplate(templateId)
+        const r = await fetch(`${this.baseUrl}/api/templates/${templateId}`, { 
+          headers: this.getHeaders() 
+        })
+        
+        if (!r.ok) {
+          console.warn(`[DocuSeal] Failed to fetch template ${templateId} during polling: ${r.status}`)
+          break
+        }
+        
+        const tpl = await r.json()
 
-        console.log(`[DocuSeal] Template ${templateId} status:`, {
-          documentsCount: template.documents?.length || 0,
-          schemaCount: template.schema?.length || 0,
-          hasDocuments: !!template.documents,
-          hasSchema: !!template.schema,
+        // Basic checks: documents count and either schema entries or preview/metadata on documents
+        const docs = Array.isArray(tpl.documents) ? tpl.documents : []
+        const schemaLen = Array.isArray(tpl.schema) ? tpl.schema.length : 0
+
+        const docsHavePreviewOrMetadata = docs.length >= expectedDocumentsCount && docs.every((d: any) => {
+          if (d.preview_image_url) return true
+          if (d.metadata && d.metadata.pdf && d.metadata.pdf.number_of_pages) return true
+          return false
         })
 
-        // Check documents array for preview or metadata
-        const docs = Array.isArray(template.documents) ? template.documents : []
-        const schemaLen = Array.isArray(template.schema) ? template.schema.length : 0
-
-        if (docs.length > 0) {
-          docs.forEach((d: any, idx: number) => {
-            console.log(`[DocuSeal] Document ${idx}:`, {
-              hasPreview: !!d.preview_image_url,
-              hasMetadata: !!d.metadata,
-              hasPdfMetadata: !!d.metadata?.pdf,
-              pageCount: d.metadata?.pdf?.number_of_pages,
-            })
-          })
+        if (schemaLen >= expectedDocumentsCount || docsHavePreviewOrMetadata) {
+          console.log(`[DocuSeal] Template ${templateId} analysis complete`)
+          return tpl
         }
 
-        // Check if documents have preview_image_url or metadata
-        const docsHavePreviewOrMetadata =
-          docs.length >= expectedDocumentsCount &&
-          docs.every((d: any) => {
-            if (d.preview_image_url) return true
-            if (d.metadata && d.metadata.pdf && d.metadata.pdf.number_of_pages) return true
-            return false
-          })
-
-        // Check if schema has attachment_uuids
-        const schemaHasAttachments =
-          schemaLen >= expectedDocumentsCount && template.schema.every((s: any) => s.attachment_uuid)
-
-        console.log(`[DocuSeal] Conditions:`, {
-          docsHavePreviewOrMetadata,
-          schemaHasAttachments,
-          docsLength: docs.length,
-          schemaLength: schemaLen,
-          expectedCount: expectedDocumentsCount,
-        })
-
-        if (docsHavePreviewOrMetadata || schemaHasAttachments) {
-          console.log(`[DocuSeal] Template ${templateId} processing complete`)
-          return
-        }
-
-        console.log(`[DocuSeal] Still waiting... (docs: ${docs.length}, schema: ${schemaLen})`)
+        console.log(`[DocuSeal] Still analyzing... (docs: ${docs.length}, schema: ${schemaLen})`)
       } catch (err) {
-        console.warn(`[DocuSeal] Error polling template ${templateId}:`, err)
+        console.warn(`[DocuSeal] Error while polling template ${templateId}:`, err)
       }
 
-      await new Promise((resolve) => setTimeout(resolve, interval))
+      // wait and increase interval (simple backoff)
+      await new Promise(resolve => setTimeout(resolve, interval))
       interval = Math.min(Math.floor(interval * 1.5), maxInterval)
     }
 
-    throw new Error(`Timeout: DocuSeal n'a pas terminé le traitement des documents après ${timeout}ms`)
+    console.warn(`[DocuSeal] Template ${templateId} analysis timeout after ${timeoutMs}ms`)
+    return null
+  }
+
+  private async waitForTemplateProcessing(templateId: number, expectedDocumentsCount: number, timeout = 30000) {
+    const result = await this.waitForTemplateAnalysis(templateId, expectedDocumentsCount, timeout)
+    if (!result) {
+      throw new Error(`Timeout: DocuSeal n'a pas terminé le traitement des documents après ${timeout}ms`)
+    }
   }
 
   private async deriveAttachmentUuids(templateId: number, templateObj: any): Promise<string[]> {

@@ -1,5 +1,6 @@
 import { TemplatePreview } from "@/components/template-preview"
 import { GeneratePDFForm } from "@/components/generate-pdf-form"
+import { MultiDiplomaForm } from "@/components/multi-diploma-form"
 import { TemplateEditor } from "@/components/template-editor"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -14,10 +15,11 @@ export default function Home() {
         </div>
 
         <Tabs defaultValue="preview" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="preview">Aperçu du Template</TabsTrigger>
             <TabsTrigger value="editor">Éditeur de Template</TabsTrigger>
             <TabsTrigger value="generate">Générer des PDFs</TabsTrigger>
+            <TabsTrigger value="signature">Signature DocuSeal</TabsTrigger>
           </TabsList>
 
           <TabsContent value="preview" className="mt-6">
@@ -52,6 +54,18 @@ export default function Home() {
               </CardHeader>
               <CardContent>
                 <GeneratePDFForm />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="signature" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Signature DocuSeal</CardTitle>
+                <CardDescription>Générez des diplômes avec signature électronique via DocuSeal</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <MultiDiplomaForm />
               </CardContent>
             </Card>
           </TabsContent>
