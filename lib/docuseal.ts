@@ -25,7 +25,7 @@ export class DocuSealClient {
   private apiKey: string
   private baseUrl: string
 
-  constructor(apiKey: string, baseUrl = "http://localhost:3000") {
+  constructor(apiKey: string, baseUrl = "http://https://firndebi.mosikasign.com/") {
     this.apiKey = apiKey
     this.baseUrl = baseUrl
   }

@@ -6,7 +6,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const templateId = Number.parseInt(params.id)
 
     const docusealApiKey = process.env.DOCUSEAL_API_KEY
-    const docusealBaseUrl = process.env.DOCUSEAL_BASE_URL || "http://localhost:3000"
+    const docusealBaseUrl = process.env.DOCUSEAL_BASE_URL || "http://https://firndebi.mosikasign.com/"
 
     if (!docusealApiKey) {
       return NextResponse.json(
