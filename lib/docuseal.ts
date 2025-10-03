@@ -70,8 +70,7 @@ export class DocuSealClient {
 
     const template = await response.json()
 
-    // Attendre que DocuSeal traite le document
-    await this.waitForTemplateProcessing(template.id)
+    await this.waitForTemplateProcessing(template.id, 1)
 
     // Ajouter le champ de signature
     await this.addSignatureField(template.id, signatureField)
@@ -192,9 +191,27 @@ export class DocuSealClient {
       try {
         const template = await this.getTemplate(templateId)
 
+        console.log(`[DocuSeal] Template ${templateId} status:`, {
+          documentsCount: template.documents?.length || 0,
+          schemaCount: template.schema?.length || 0,
+          hasDocuments: !!template.documents,
+          hasSchema: !!template.schema,
+        })
+
         // Check documents array for preview or metadata
         const docs = Array.isArray(template.documents) ? template.documents : []
         const schemaLen = Array.isArray(template.schema) ? template.schema.length : 0
+
+        if (docs.length > 0) {
+          docs.forEach((d: any, idx: number) => {
+            console.log(`[DocuSeal] Document ${idx}:`, {
+              hasPreview: !!d.preview_image_url,
+              hasMetadata: !!d.metadata,
+              hasPdfMetadata: !!d.metadata?.pdf,
+              pageCount: d.metadata?.pdf?.number_of_pages,
+            })
+          })
+        }
 
         // Check if documents have preview_image_url or metadata
         const docsHavePreviewOrMetadata =
@@ -208,6 +225,14 @@ export class DocuSealClient {
         // Check if schema has attachment_uuids
         const schemaHasAttachments =
           schemaLen >= expectedDocumentsCount && template.schema.every((s: any) => s.attachment_uuid)
+
+        console.log(`[DocuSeal] Conditions:`, {
+          docsHavePreviewOrMetadata,
+          schemaHasAttachments,
+          docsLength: docs.length,
+          schemaLength: schemaLen,
+          expectedCount: expectedDocumentsCount,
+        })
 
         if (docsHavePreviewOrMetadata || schemaHasAttachments) {
           console.log(`[DocuSeal] Template ${templateId} processing complete`)
