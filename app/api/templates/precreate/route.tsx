@@ -1,42 +1,33 @@
-import { type NextRequest, NextResponse } from "next/server";
-import {
-  Document,
-  Page,
-  Text,
-  View,
-  StyleSheet,
-  pdf,
-} from "@react-pdf/renderer";
-import { DocuSealClient, SignatureField } from "@/lib/docuseal";
+import { type NextRequest, NextResponse } from "next/server"
+import { Document, Page, Text, View, StyleSheet, pdf } from "@react-pdf/renderer"
+import { DocuSealClient, type SignatureField } from "@/lib/docuseal"
 
 interface Student {
-  nom_etudiant: string;
-  specialite: string;
-  date_obtention: string;
+  nom_etudiant: string
+  specialite: string
+  date_obtention: string
 }
 
 interface RequestBody {
-  lot_nom: string;
-  etudiants: Student[];
-  template_type?: "bep" | "bp" | "bt";
-  signer_email: string;
+  lot_nom: string
+  etudiants: Student[]
+  template_type?: "bep" | "bp" | "bt"
   signature_position?: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    page: number;
-  };
+    x: number
+    y: number
+    width: number
+    height: number
+    page: number
+  }
 }
 
-// Define styles for PDF (same as original)
+// Styles identiques à generate-with-signature
 const styles = StyleSheet.create({
   page: {
     padding: 30,
     fontFamily: "Helvetica",
     backgroundColor: "#ffffff",
   },
-  // BEP & BT styles
   bepContainer: {
     flex: 1,
     justifyContent: "center",
@@ -78,7 +69,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: "left",
   },
-  // BP styles
   bpPage: {
     padding: 40,
     fontFamily: "Helvetica",
@@ -123,9 +113,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: "center",
   },
-});
+})
 
-// BEP Template Component
 function BEPDocument({ nom_etudiant, specialite, date_obtention }: Student) {
   return (
     <Document>
@@ -134,14 +123,9 @@ function BEPDocument({ nom_etudiant, specialite, date_obtention }: Student) {
           <Text style={styles.bepTitle}>Brevet d'Etudes Professionnel</Text>
           <Text style={styles.bepText}>Ce diplôme est décerné à Mr</Text>
           <Text style={styles.bepStudentName}>{nom_etudiant}</Text>
-          <Text style={styles.bepText}>
-            pour avoir satisfait aux exigences du programme
-          </Text>
+          <Text style={styles.bepText}>pour avoir satisfait aux exigences du programme</Text>
           <Text style={styles.bepSpecialite}>{specialite}</Text>
-          <Text style={styles.bepText}>
-            et avoir démontré les compétences requises pour l'obtention de ce
-            diplôme.
-          </Text>
+          <Text style={styles.bepText}>et avoir démontré les compétences requises pour l'obtention de ce diplôme.</Text>
           <View style={{ marginTop: 18, marginBottom: 18 }}>
             <Text style={styles.bepText}> </Text>
           </View>
@@ -155,11 +139,9 @@ function BEPDocument({ nom_etudiant, specialite, date_obtention }: Student) {
         </View>
       </Page>
     </Document>
-  );
+  )
 }
 
-
-// BP Template Component
 function BPDocument({ nom_etudiant, specialite, date_obtention }: Student) {
   return (
     <Document>
@@ -168,14 +150,9 @@ function BPDocument({ nom_etudiant, specialite, date_obtention }: Student) {
           <Text style={styles.bpTitle}>Brevet Professionnel</Text>
           <Text style={styles.bpText}>Ce diplôme est décerné à</Text>
           <Text style={styles.bpStudentName}>{nom_etudiant}</Text>
-          <Text style={styles.bpText}>
-            pour avoir satisfait aux exigences du programme
-          </Text>
+          <Text style={styles.bpText}>pour avoir satisfait aux exigences du programme</Text>
           <Text style={styles.bpSpecialite}>{specialite}</Text>
-          <Text style={styles.bpText}>
-            et avoir démontré les compétences requises pour l'obtention de ce
-            diplôme.
-          </Text>
+          <Text style={styles.bpText}>et avoir démontré les compétences requises pour l'obtention de ce diplôme.</Text>
           <Text style={styles.bpFooter}>
             <Text style={{ fontWeight: "bold" }}>Date de délivrance : </Text>
             {date_obtention}
@@ -186,10 +163,9 @@ function BPDocument({ nom_etudiant, specialite, date_obtention }: Student) {
         </View>
       </Page>
     </Document>
-  );
+  )
 }
 
-// BT Template Component
 function BTDocument({ nom_etudiant, specialite, date_obtention }: Student) {
   return (
     <Document>
@@ -198,14 +174,9 @@ function BTDocument({ nom_etudiant, specialite, date_obtention }: Student) {
           <Text style={styles.bepTitle}>Brevet de Technicien</Text>
           <Text style={styles.bepText}>Ce diplôme est décerné à Mr</Text>
           <Text style={styles.bepStudentName}>{nom_etudiant}</Text>
-          <Text style={styles.bepText}>
-            pour avoir satisfait aux exigences du programme
-          </Text>
+          <Text style={styles.bepText}>pour avoir satisfait aux exigences du programme</Text>
           <Text style={styles.bepSpecialite}>{specialite}</Text>
-          <Text style={styles.bepText}>
-            et avoir démontré les compétences requises pour l'obtention de ce
-            diplôme.
-          </Text>
+          <Text style={styles.bepText}>et avoir démontré les compétences requises pour l'obtention de ce diplôme.</Text>
           <View style={{ marginTop: 18, marginBottom: 18 }}>
             <Text style={styles.bepText}> </Text>
           </View>
@@ -219,100 +190,91 @@ function BTDocument({ nom_etudiant, specialite, date_obtention }: Student) {
         </View>
       </Page>
     </Document>
-  );
+  )
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const body: RequestBody = await request.json();
-    const {
-      lot_nom,
-      etudiants,
-      template_type = "bep",
-      signer_email,
-      signature_position,
-    } = body;
+    const body: RequestBody = await request.json()
+    const { lot_nom, etudiants, template_type = "bep", signature_position } = body
 
-    if (!lot_nom || !etudiants || !Array.isArray(etudiants) || !signer_email) {
+    if (!lot_nom || !etudiants || !Array.isArray(etudiants) || etudiants.length === 0) {
       return NextResponse.json(
         {
-          error:
-            "Format de données invalide. lot_nom, etudiants et signer_email sont requis.",
+          error: "Format de données invalide. lot_nom et etudiants sont requis.",
         },
-        { status: 400 }
-      );
+        { status: 400 },
+      )
     }
 
-    // Vérifier la configuration DocuSeal
-    const docusealApiKey = process.env.DOCUSEAL_API_KEY ||"CPMhp5phGMMU3wrXsoBRezBS5cDRyPd3c1k8ipJ5vkq";
-    const docusealBaseUrl =
-      process.env.DOCUSEAL_BASE_URL || "http://localhost:57023";
+    const docusealApiKey = process.env.DOCUSEAL_API_KEY
+    const docusealBaseUrl = process.env.DOCUSEAL_BASE_URL || "http://localhost:3000"
 
     if (!docusealApiKey) {
       return NextResponse.json(
         {
           error: "Configuration DocuSeal manquante. DOCUSEAL_API_KEY requis.",
         },
-        { status: 500 }
-      );
+        { status: 500 },
+      )
     }
 
-    // Générer le PDF pour le premier étudiant (template de base)
-    const firstStudent = etudiants[0];
-    let document;
+    // Générer tous les PDFs pour tous les étudiants
+    const pdfBuffers = await Promise.all(
+      etudiants.map(async (student, index) => {
+        let document
 
-    if (template_type === "bp") {
-      document = <BPDocument {...firstStudent} />;
-    } else if (template_type === "bt") {
-      document = <BTDocument {...firstStudent} />;
-    } else {
-      document = <BEPDocument {...firstStudent} />;
-    }
+        if (template_type === "bp") {
+          document = <BPDocument {...student} />
+        } else if (template_type === "bt") {
+          document = <BTDocument {...student} />
+        } else {
+          document = <BEPDocument {...student} />
+        }
 
-    // Générer le PDF buffer
-    const pdfDoc = pdf(document);
-    const pdfBlob = await pdfDoc.toBlob();
-    const pdfBuffer = Buffer.from(await pdfBlob.arrayBuffer());
+        const pdfDoc = pdf(document)
+        const pdfBlob = await pdfDoc.toBlob()
+        const buffer = Buffer.from(await pdfBlob.arrayBuffer())
+
+        return {
+          buffer,
+          filename: `${template_type.toUpperCase()}_${student.nom_etudiant.replace(/\s+/g, "_")}.pdf`,
+        }
+      }),
+    )
 
     // Configuration du champ signature
     const signatureField: SignatureField = {
-      x: signature_position?.x ?? 0.75, // Position par défaut à droite du texte "Signature :"
-      y: signature_position?.y ?? 0.85, // Position par défaut en bas de page
+      x: signature_position?.x ?? 0.75,
+      y: signature_position?.y ?? 0.85,
       width: signature_position?.width ?? 0.15,
       height: signature_position?.height ?? 0.08,
       page: signature_position?.page ?? 0,
-    };
+    }
 
     // Créer le client DocuSeal
-    const docusealClient = new DocuSealClient(docusealApiKey, docusealBaseUrl);
+    const docusealClient = new DocuSealClient(docusealApiKey, docusealBaseUrl)
 
-    // Créer le template avec signature
-    const templateName = `Diplôme ${template_type.toUpperCase()} - ${lot_nom}`;
-    const result = await docusealClient.createTemplateFromPDF(
-      pdfBuffer,
-      `${templateName}.pdf`,
-      templateName,
-      signatureField,
-      signer_email
-    );
+    // Créer le template avec tous les documents et le champ signature multi-areas
+    const templateName = `Diplômes ${template_type.toUpperCase()} - ${lot_nom}`
+    const template = await docusealClient.createMultiDocumentTemplate(pdfBuffers, templateName, signatureField)
 
     return NextResponse.json({
       success: true,
-      templateId: result.templateId,
-      templateSlug: result.templateSlug,
-      signUrl: result.signUrl,
-      submissionId: result.submissionId,
-      message: `Template créé avec succès pour ${etudiants.length} étudiant(s).`,
-    });
+      templateId: template.id,
+      templateSlug: template.slug,
+      documentCount: etudiants.length,
+      message: `Template créé avec succès pour ${etudiants.length} étudiant(s). Utilisez l'endpoint /api/templates/${template.id}/submissions pour créer une soumission.`,
+    })
   } catch (error) {
-    console.error("[DocuSeal] Error generating template:", error);
+    console.error("[DocuSeal] Error creating multi-document template:", error)
     return NextResponse.json(
       {
         success: false,
-        error: "Erreur lors de la création du template avec signature",
+        error: "Erreur lors de la création du template multi-documents",
         details: error instanceof Error ? error.message : String(error),
       },
-      { status: 500 }
-    );
+      { status: 500 },
+    )
   }
 }

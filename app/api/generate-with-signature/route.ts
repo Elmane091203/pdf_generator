@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { Document, Page, Text, View, StyleSheet, pdf } from "@react-pdf/renderer"
-import JSZip from "jszip"
+import { DocuSealClient, SignatureField } from "@/lib/docuseal"
 
 interface Student {
   nom_etudiant: string
@@ -12,10 +12,17 @@ interface RequestBody {
   lot_nom: string
   etudiants: Student[]
   template_type?: "bep" | "bp" | "bt"
-  download_mode?: "zip" | "individual"
+  signer_email: string
+  signature_position?: {
+    x: number
+    y: number
+    width: number
+    height: number
+    page: number
+  }
 }
 
-// Define styles for PDF
+// Define styles for PDF (same as original)
 const styles = StyleSheet.create({
   page: {
     padding: 30,
@@ -195,86 +202,84 @@ function BTDocument({ nom_etudiant, specialite, date_obtention }: Student) {
 export async function POST(request: NextRequest) {
   try {
     const body: RequestBody = await request.json()
-    const { lot_nom, etudiants, template_type = "bep", download_mode = "zip" } = body
+    const { 
+      lot_nom, 
+      etudiants, 
+      template_type = "bep", 
+      signer_email,
+      signature_position 
+    } = body
 
-    if (!lot_nom || !etudiants || !Array.isArray(etudiants)) {
-      return NextResponse.json({ error: "Format de données invalide" }, { status: 400 })
+    if (!lot_nom || !etudiants || !Array.isArray(etudiants) || !signer_email) {
+      return NextResponse.json({ 
+        error: "Format de données invalide. lot_nom, etudiants et signer_email sont requis." 
+      }, { status: 400 })
     }
 
-    if (download_mode === "individual") {
-      const pdfs = []
+    // Vérifier la configuration DocuSeal
+    const docusealApiKey = process.env.DOCUSEAL_API_KEY
+    const docusealBaseUrl = process.env.DOCUSEAL_BASE_URL || 'http://localhost:3000'
 
-      for (let i = 0; i < etudiants.length; i++) {
-        const etudiant = etudiants[i]
-
-        let document
-        if (template_type === "bp") {
-          document = <BPDocument {...etudiant} />
-        } else if (template_type === "bt") {
-          document = <BTDocument {...etudiant} />
-        } else {
-          document = <BEPDocument {...etudiant} />
-        }
-
-        const pdfDoc = pdf(document)
-        const pdfBuffer = await pdfDoc.toBlob()
-        const fileName = `${etudiant.nom_etudiant.replace(/\s+/g, "_")}_diplome.pdf`
-
-        // Convert Blob to base64
-        const arrayBuffer = await pdfBuffer.arrayBuffer()
-        const base64Data = Buffer.from(arrayBuffer).toString('base64')
-        
-        pdfs.push({
-          filename: fileName,
-          data: base64Data,
-        })
-      }
-
-      return NextResponse.json({ pdfs })
+    if (!docusealApiKey) {
+      return NextResponse.json({ 
+        error: "Configuration DocuSeal manquante. DOCUSEAL_API_KEY requis." 
+      }, { status: 500 })
     }
 
-    const zip = new JSZip()
-    const pdfFolder = zip.folder(lot_nom)
+    // Générer le PDF pour le premier étudiant (template de base)
+    const firstStudent = etudiants[0]
+    let document
 
-    // Generate PDF for each student
-    for (let i = 0; i < etudiants.length; i++) {
-      const etudiant = etudiants[i]
-
-      // Select template based on type
-      let document
-      if (template_type === "bp") {
-        document = <BPDocument {...etudiant} />
-      } else if (template_type === "bt") {
-        document = <BTDocument {...etudiant} />
-      } else {
-        document = <BEPDocument {...etudiant} />
-      }
-
-      // Generate PDF buffer
-      const pdfDoc = pdf(document)
-      const pdfBlob = await pdfDoc.toBlob()
-      const pdfBuffer = await pdfBlob.arrayBuffer()
-
-      // Add to ZIP
-      const fileName = `${etudiant.nom_etudiant.replace(/\s+/g, "_")}_diplome.pdf`
-      pdfFolder?.file(fileName, pdfBuffer)
+    if (template_type === "bp") {
+      document = <BPDocument {...firstStudent} />
+    } else if (template_type === "bt") {
+      document = <BTDocument {...firstStudent} />
+    } else {
+      document = <BEPDocument {...firstStudent} />
     }
 
-    // Generate ZIP file
-    const zipBuffer = await zip.generateAsync({ type: "nodebuffer" })
+    // Générer le PDF buffer
+    const pdfDoc = pdf(document)
+    const pdfBlob = await pdfDoc.toBlob()
+    const pdfBuffer = Buffer.from(await pdfBlob.arrayBuffer())
 
-    // Return ZIP file
-    return new NextResponse(new Uint8Array(zipBuffer), {
-      headers: {
-        "Content-Type": "application/zip",
-        "Content-Disposition": `attachment; filename="${lot_nom}_diplomes.zip"`,
-      },
+    // Configuration du champ signature
+    const signatureField: SignatureField = {
+      x: signature_position?.x ?? 0.75,  // Position par défaut à droite du texte "Signature :"
+      y: signature_position?.y ?? 0.85,  // Position par défaut en bas de page
+      width: signature_position?.width ?? 0.15,
+      height: signature_position?.height ?? 0.08,
+      page: signature_position?.page ?? 0
+    }
+
+    // Créer le client DocuSeal
+    const docusealClient = new DocuSealClient(docusealApiKey, docusealBaseUrl)
+
+    // Créer le template avec signature
+    const templateName = `Diplôme ${template_type.toUpperCase()} - ${lot_nom}`
+    const result = await docusealClient.createTemplateFromPDF(
+      pdfBuffer,
+      `${templateName}.pdf`,
+      templateName,
+      signatureField,
+      signer_email
+    )
+
+    return NextResponse.json({
+      success: true,
+      templateId: result.templateId,
+      templateSlug: result.templateSlug,
+      signUrl: result.signUrl,
+      submissionId: result.submissionId,
+      message: `Template créé avec succès pour ${etudiants.length} étudiant(s).`
     })
+
   } catch (error) {
-    console.error("[v0] Error generating diplomas:", error)
+    console.error("[DocuSeal] Error generating template:", error)
     return NextResponse.json(
       {
-        error: "Erreur lors de la génération des diplômes",
+        success: false,
+        error: "Erreur lors de la création du template avec signature",
         details: error instanceof Error ? error.message : String(error),
       },
       { status: 500 },
