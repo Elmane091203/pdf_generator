@@ -198,6 +198,8 @@ export async function POST(request: NextRequest) {
     const body: RequestBody = await request.json()
     const { lot_nom, etudiants, template_type = "bep", signature_position } = body
 
+    console.log(`[API] Precreate request: lot=${lot_nom}, students=${etudiants.length}, type=${template_type}`)
+
     if (!lot_nom || !etudiants || !Array.isArray(etudiants) || etudiants.length === 0) {
       return NextResponse.json(
         {
@@ -218,6 +220,8 @@ export async function POST(request: NextRequest) {
         { status: 500 },
       )
     }
+
+    console.log(`[API] Generating ${etudiants.length} PDF(s)...`)
 
     // Générer tous les PDFs pour tous les étudiants
     const pdfBuffers = await Promise.all(
@@ -243,13 +247,14 @@ export async function POST(request: NextRequest) {
       }),
     )
 
-    // Configuration du champ signature
+    console.log(`[API] Generated ${pdfBuffers.length} PDF(s)`)
+
     const signatureField: SignatureField = {
       x: signature_position?.x ?? 0.75,
       y: signature_position?.y ?? 0.85,
       width: signature_position?.width ?? 0.15,
       height: signature_position?.height ?? 0.08,
-      page: signature_position?.page ?? 0,
+      page: signature_position?.page ?? 1, // 1-based indexing
     }
 
     // Créer le client DocuSeal
@@ -257,17 +262,24 @@ export async function POST(request: NextRequest) {
 
     // Créer le template avec tous les documents et le champ signature multi-areas
     const templateName = `Diplômes ${template_type.toUpperCase()} - ${lot_nom}`
+    console.log(`[API] Creating template: ${templateName}`)
+
     const template = await docusealClient.createMultiDocumentTemplate(pdfBuffers, templateName, signatureField)
+
+    const templateUrl = template.slug ? `${docusealBaseUrl}/d/${template.slug}` : null
+
+    console.log(`[API] Template created successfully: ID=${template.id}`)
 
     return NextResponse.json({
       success: true,
       templateId: template.id,
       templateSlug: template.slug,
+      templateUrl: templateUrl,
       documentCount: etudiants.length,
       message: `Template créé avec succès pour ${etudiants.length} étudiant(s). Utilisez l'endpoint /api/templates/${template.id}/submissions pour créer une soumission.`,
     })
   } catch (error) {
-    console.error("[DocuSeal] Error creating multi-document template:", error)
+    console.error("[API] Error creating multi-document template:", error)
     return NextResponse.json(
       {
         success: false,
