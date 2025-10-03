@@ -217,7 +217,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Vérifier la configuration DocuSeal
-    const docusealApiKey = process.env.DOCUSEAL_API_KEY
+    const docusealApiKey = process.env.DOCUSEAL_API_KEY || "Ha6ivmfNeXFyn1YjEtnmNhf1NTn2rTsJzTiG7YrM1vL"
     const docusealBaseUrl = process.env.DOCUSEAL_BASE_URL || 'http://localhost:3000'
 
     if (!docusealApiKey) {
