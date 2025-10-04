@@ -218,7 +218,7 @@ export async function POST(request: NextRequest) {
 
     // Vérifier la configuration DocuSeal
     const docusealApiKey = process.env.DOCUSEAL_API_KEY || "1A8v6xC5DHW43cehcfJbjPXZbek1ngvaKn2U9q5rVrc"
-    const docusealBaseUrl = process.env.DOCUSEAL_BASE_URL || 'https://firndebi.mosikasign.com/'
+    const docusealBaseUrl = process.env.DOCUSEAL_BASE_URL || 'https://firndebi.mosikasign.com'
 
     if (!docusealApiKey) {
       return NextResponse.json({ 

@@ -22,7 +22,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
 
     const docusealApiKey = process.env.DOCUSEAL_API_KEY
-    const docusealBaseUrl = process.env.DOCUSEAL_BASE_URL || "http://https://firndebi.mosikasign.com/"
+    const docusealBaseUrl = process.env.DOCUSEAL_BASE_URL || "https://firndebi.mosikasign.com"
 
     if (!docusealApiKey) {
       return NextResponse.json(
